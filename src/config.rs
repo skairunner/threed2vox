@@ -1,5 +1,7 @@
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
+use std::io::Read;
+use std::collections::HashMap;
 
 
 pub enum VoxelOption {
@@ -31,5 +33,54 @@ impl Config {
             data_version: 0,
             input_path
         })
+    }
+
+    pub fn parse_version_string(version: &str) -> i32 {
+        use strsim::normalized_levenshtein;
+
+        let mut toml_content = String::new();
+        let mut file = std::fs::File::open("minecraft_versions.toml")
+            .expect("Could not find minecraft_versions.toml");
+        file.read_to_string(&mut toml_content).unwrap();
+        let index: HashMap<String, i32> = toml::from_str(&toml_content).unwrap();
+
+        // First, try to look it up directly, and if it's in there return it
+        if index.contains_key(version) {
+            return index[version]
+        }
+
+        // Next, try to find the version str with the closest distance.
+        let result = index.into_iter()
+            .map(|(k, v)| (normalized_levenshtein(&k, version), k, v))
+            // Find the max.
+            .fold((-1.0, String::new(), 0), |prev, this| {
+                if this.0 > prev.0 {
+                    this
+                } else {
+                    prev
+                }
+            });
+        println!("[INFO] Could not find version '{}', using closest match '{}'.", version, result.1);
+        result.2
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        assert_eq!(Config::parse_version_string("20w20a"), 2536)
+    }
+
+    #[test]
+    fn prefers_full_match() {
+        assert_eq!(Config::parse_version_string("1.16"), 2566)
+    }
+
+    #[test]
+    fn does_partial_match() {
+        assert_eq!(Config::parse_version_string("1.13-"), 1519)
     }
 }
