@@ -1,0 +1,22 @@
+[package]
+name = "threed2vox"
+version = "0.1.0"
+authors = ["Skye Im <skye.im@nyu.edu>"]
+edition = "2018"
+
+[profile.dev]
+opt-level = 1
+
+[[bin]]
+name = "threed2vox"
+path = "src/bin/main.rs"
+
+[dependencies]
+anyhow = "1.0.32"
+clap = "2.33.0"
+hematite-nbt = "0.5.0"
+log = "0.4.11"
+ncollide3d = "0.24.0"
+serde = "1.0.115"
+simplelog = "0.8.0"
+tobj = "2.0.2"
