@@ -16,6 +16,7 @@ fn main() -> anyhow::Result<()> {
         .about("Converts 3D files to Minecraft .schematic format")
         .arg(Arg::with_name("input")
             .help("Designate the input file")
+            .index(1)
             .takes_value(true)
         )
         .arg(Arg::with_name("output")
@@ -47,8 +48,11 @@ fn main() -> anyhow::Result<()> {
             .long("version")
             .help("Either the version (as a string) or the dataversion of Minecraft to make the schematic for.\
 Refer to the minecraft_versions.toml file for the dataversions, or simply specify a version name and let threed2vox guess the dataversion for you.\
+Another alternative is to specify 'none' version, though this is undefined behaviour. Note that threed2vox only supports Java Edition.\
 \
 The largest difference between versions is pre- and post-1.13 (1241 vs 1626): the two use different schematic formats.")
+            .takes_value(true)
+            .required(true)
         )
         .get_matches_from(env::args());
 

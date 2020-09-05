@@ -28,9 +28,32 @@ impl Config {
             .ok_or_else(|| anyhow!("No input specified"))?
             .to_string();
 
+        let version = args.value_of("minecraft version")
+            .ok_or_else(|| anyhow!("No version specified"))?;
+        let data_version = match version.parse() {
+            Ok(n) => n,
+            Err(_) => Self::parse_version_string(version)
+        };
+
+        // Checks for scale.
+        let voxel_size = match args.value_of("scale") {
+            Some(s) => {
+                let n = s.parse()
+                    .unwrap_or(1.0);
+                VoxelOption::VoxelSize(n)
+            },
+            None => {
+                // If scale doesn't exist, check for size. If size doesn't exist, default is 1.0
+                let s = args.value_of("max_size").unwrap_or("1.0");
+                let n = s.parse()
+                    .unwrap_or(1.0);
+                VoxelOption::MeshSize(n)
+            }
+        };
+
         Ok(Self {
-            voxel_size: VoxelOption::MeshSize(5.0),
-            data_version: 0,
+            voxel_size,
+            data_version,
             input_path
         })
     }
