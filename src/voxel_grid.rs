@@ -14,6 +14,11 @@ impl VoxelGrid {
         }
     }
 
+    pub fn get(&self, x: i32, y: i32, z: i32) -> &bool {
+        self.map.get(&(x, y, z))
+            .unwrap_or(&false)
+    }
+
     pub fn set(&mut self, x: i32, y: i32, z: i32, is_set: bool) {
         self.map.insert((x, y, z), is_set);
     }

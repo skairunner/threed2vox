@@ -11,6 +11,10 @@ opt-level = 1
 name = "threed2vox"
 path = "src/bin/main.rs"
 
+[[bin]]
+name = "tester"
+path = "src/bin/tester.rs"
+
 [dependencies]
 anyhow = "1.0.32"
 clap = "2.33.0"

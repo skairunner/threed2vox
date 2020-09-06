@@ -1,6 +1,8 @@
 
 
 use std::env;
+use std::fs::File;
+use std::path::Path;
 
 use clap::{Arg, App};
 use threed2vox::to_schematic;
@@ -56,7 +58,21 @@ The largest difference between versions is pre- and post-1.13 (1241 vs 1626): th
         )
         .get_matches_from(env::args());
 
-    to_schematic(AppConfig::from_argmatch(matches)?);
+    let config = AppConfig::from_argmatch(matches)?;
+    let input_path = config.input_path.clone();
+    let path = Path::new(&input_path).parent().unwrap();
+    let file_stem = config.filename.clone();
+
+    let nbt = to_schematic(config)?;
+
+    // Output nbt to file.
+    let output_path = path.join(Path::new(&format!("{}.schematic", file_stem)));
+    println!("[INFO] Writing to '{}'", output_path.to_str().unwrap());
+
+    let mut file = File::create(output_path.clone())
+        .expect(&format!("Could not create file '{:?}'", output_path));
+
+    nbt::to_writer(&mut file, &nbt, None);
 
     Ok(())
 }

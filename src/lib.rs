@@ -1,17 +1,20 @@
-pub mod voxel_grid;
-pub mod nbtifier;
-pub mod config;
-
 use std::collections::HashMap;
 
 use ncollide3d::na::{Isometry3, Point3, Vector3};
 use ncollide3d::query;
+use ncollide3d::query::Proximity;
 use ncollide3d::shape::{Cuboid, TriMesh};
 use tobj::{load_obj, Model};
-use ncollide3d::query::Proximity;
 
 use config::{Config, VoxelOption};
+use nbtifier::SchematicV2;
 use voxel_grid::VoxelGrid;
+
+use crate::nbtifier::NBTIfy;
+
+pub mod voxel_grid;
+pub mod nbtifier;
+pub mod config;
 
 pub fn read_obj(path: &str) -> anyhow::Result<Vec<Model>> {
     let (model, _) = load_obj(path, true)?;
@@ -49,7 +52,7 @@ fn obj_to_trimesh(objs: Vec<Model>) -> TriMesh<f32> {
 }
 
 /// Read object from path and step through it with a given voxel size.
-pub fn to_schematic(config: Config) -> anyhow::Result<()> {
+pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Value> {
     let obj = read_obj(&config.input_path)?;
     let mut trimesh = obj_to_trimesh(obj);
     let mins = trimesh.aabb().mins;
@@ -77,11 +80,11 @@ pub fn to_schematic(config: Config) -> anyhow::Result<()> {
     let voxel = Cuboid::new(Vector3::new(voxel_size / 2.0, voxel_size / 2.0, voxel_size / 2.0));
 
     // Iterate over voxels and do collision tests
-    println!("{} {} {} {}", x, y, z, voxel_size);
+    println!("[INFO] Dimensions of the model are {}x{}x{}", x, y, z);
     let mut n = 0;
     for i in 0..x {
+        println!("[INFO] {:.1}%", (i as f32) / (x as f32) * 100.0);
         for j in 0..y {
-            println!("i= {}  j = {}", i, j);
             for k in 0..z {
                 let transform = Isometry3::translation((i as f32) * voxel_size, (j as f32) * voxel_size, (k as f32) * voxel_size);
                 let proximity = query::proximity(&transform, &voxel, &Isometry3::translation(0.0, 0.0, 0.0), &trimesh, 0.0);
@@ -95,9 +98,7 @@ pub fn to_schematic(config: Config) -> anyhow::Result<()> {
             }
         }
     }
-    println!("Voxels: {}", n);
+    println!("[INFO] Total {} blocks", n);
 
-    // Return
-
-    Ok(())
+    Ok(SchematicV2::convert(&grid, &config))
 }

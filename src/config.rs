@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use clap::ArgMatches;
 use std::io::Read;
 use std::collections::HashMap;
+use std::path::Path;
 
 
 pub enum VoxelOption {
@@ -20,6 +21,10 @@ pub struct Config {
     pub data_version: i32,
     /// The input file. Currently only supports .obj
     pub input_path: String,
+    /// Just the filename portion of the input path
+    pub filename: String,
+    /// The block to use for occupied voxels. Defaults to stone
+    pub block: String,
 }
 
 impl Config {
@@ -27,9 +32,18 @@ impl Config {
         let input_path = args.value_of("input")
             .ok_or_else(|| anyhow!("No input specified"))?
             .to_string();
+        let filename = Path::new(&input_path)
+            .file_stem()
+            .expect(format!("The path '{}' doesn't seem to contain a file name", input_path).as_str())
+            .to_str()
+            .unwrap()
+            .to_string();
 
         let version = args.value_of("minecraft version")
             .ok_or_else(|| anyhow!("No version specified"))?;
+        let block = args.value_of("block")
+            .unwrap_or("stone")
+            .to_string();
         let data_version = match version.parse() {
             Ok(n) => n,
             Err(_) => Self::parse_version_string(version)
@@ -54,7 +68,9 @@ impl Config {
         Ok(Self {
             voxel_size,
             data_version,
-            input_path
+            input_path,
+            block,
+            filename
         })
     }
 
