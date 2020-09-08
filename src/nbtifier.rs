@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::time::SystemTime;
 
-use nbt::Value;
+use nbt::{Value, Blob};
 use serde::Serialize;
 
 use crate::voxel_grid::VoxelGrid;
@@ -12,7 +12,7 @@ pub trait NBTIfy {
     /// # Arguments
     /// * `grid`: The VoxelGrid to use
     /// * `block`: The Block ID string to fill non-empty cells with
-    fn convert(grid: &VoxelGrid, config: &Config) -> nbt::Value;
+    fn convert(grid: &VoxelGrid, config: &Config) -> Blob;
 }
 
 pub fn varint_from_int(mut i: u32) -> Vec<u8> {
@@ -55,8 +55,9 @@ pub struct SchematicV1;
 pub struct SchematicV2;
 
 impl NBTIfy for SchematicV2 {
-    fn convert(grid: &VoxelGrid, config: &Config) -> Value {
-        let mut root: HashMap<String, Value> = HashMap::new();
+    fn convert(grid: &VoxelGrid, config: &Config) -> Blob {
+        let mut root = nbt::Blob::new();
+
         root.insert("Version".to_string(), Value::Int(2));
         root.insert("DataVersion".to_string(), Value::Int(config.data_version));
 
@@ -83,8 +84,8 @@ impl NBTIfy for SchematicV2 {
         root.insert("Palette".to_string(), Value::Compound(palette));
 
         let mut block_data: Vec<u32> = Vec::new();
-        for z in 0..grid.dimensions.2 {
-            for y in 0..grid.dimensions.1 {
+        for y in 0..grid.dimensions.1 {
+            for z in 0..grid.dimensions.2 {
                 for x in 0..grid.dimensions.0 {
                     let id = match grid.get(x, y, z) {
                         true => 1,
@@ -95,8 +96,9 @@ impl NBTIfy for SchematicV2 {
             }
         }
         let block_data = varint_from_intarray(block_data);
-        root.insert("BlockData".to_string(), Value::ByteArray(bytearray_from_varint(block_data)));
+        root.insert("BlockData".to_string(), Value::ByteArray(bytearray_from_varint(block_data)))
+            .unwrap();
 
-        nbt::Value::Compound(root)
+        root
     }
 }

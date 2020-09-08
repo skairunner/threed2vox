@@ -25,6 +25,10 @@ pub struct Config {
     pub filename: String,
     /// The block to use for occupied voxels. Defaults to stone
     pub block: String,
+    /// Rotations in radians
+    pub x_rot: f32,
+    pub y_rot: f32,
+    pub z_rot: f32,
 }
 
 impl Config {
@@ -65,12 +69,21 @@ impl Config {
             }
         };
 
+        // Rotations
+        let x_rot = std::f32::consts::FRAC_PI_2 * (args.occurrences_of("x_rot") as f32);
+        let y_rot = std::f32::consts::FRAC_PI_2 * (args.occurrences_of("y_rot") as f32);
+        let z_rot = std::f32::consts::FRAC_PI_2 * (args.occurrences_of("z_rot") as f32);
+        println!("[INFO] {} {} {}", x_rot, y_rot, z_rot);
+
         Ok(Self {
             voxel_size,
             data_version,
             input_path,
             block,
-            filename
+            filename,
+            x_rot,
+            y_rot,
+            z_rot
         })
     }
 

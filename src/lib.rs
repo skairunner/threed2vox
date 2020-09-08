@@ -52,11 +52,20 @@ fn obj_to_trimesh(objs: Vec<Model>) -> TriMesh<f32> {
 }
 
 /// Read object from path and step through it with a given voxel size.
-pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Value> {
+pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Blob> {
     let obj = read_obj(&config.input_path)?;
     let mut trimesh = obj_to_trimesh(obj);
+
+    trimesh.transform_by(
+        &Isometry3::rotation(
+            Vector3::new(config.x_rot, config.y_rot, config.z_rot)
+        )
+    );
+
     let mins = trimesh.aabb().mins;
     trimesh.transform_by(&Isometry3::translation(-mins.x, -mins.y, -mins.z));
+
+
     let voxel_size = match config.voxel_size {
         VoxelOption::VoxelSize(s) => s,
         VoxelOption::MeshSize(s) => {
@@ -72,12 +81,13 @@ pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Value> {
     // Determine the voxel grid size
     let aabb = trimesh.aabb();
     let extents = aabb.extents();
-    let x = f32::ceil(extents.x / voxel_size) as i32;
-    let y = f32::ceil(extents.y / voxel_size) as i32;
-    let z = f32::ceil(extents.z / voxel_size) as i32;
+    let x = f32::ceil(extents.x / voxel_size) as i32 + 1;
+    let y = f32::ceil(extents.y / voxel_size) as i32 + 1;
+    let z = f32::ceil(extents.z / voxel_size) as i32 + 1;
 
     let mut grid = VoxelGrid::new(x, y, z);
-    let voxel = Cuboid::new(Vector3::new(voxel_size / 2.0, voxel_size / 2.0, voxel_size / 2.0));
+    let voxel_half = voxel_size / 2.0;
+    let voxel = Cuboid::new(Vector3::new(voxel_half, voxel_half, voxel_half));
 
     // Iterate over voxels and do collision tests
     println!("[INFO] Dimensions of the model are {}x{}x{}", x, y, z);
@@ -86,7 +96,8 @@ pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Value> {
         println!("[INFO] {:.1}%", (i as f32) / (x as f32) * 100.0);
         for j in 0..y {
             for k in 0..z {
-                let transform = Isometry3::translation((i as f32) * voxel_size, (j as f32) * voxel_size, (k as f32) * voxel_size);
+                let transform = Isometry3::translation(
+                    (i as f32) * voxel_size - voxel_half, (j as f32) * voxel_size - voxel_half, (k as f32) * voxel_size - voxel_half);
                 let proximity = query::proximity(&transform, &voxel, &Isometry3::translation(0.0, 0.0, 0.0), &trimesh, 0.0);
                 match proximity {
                     Proximity::Intersecting => {
@@ -99,6 +110,22 @@ pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Value> {
         }
     }
     println!("[INFO] Total {} blocks", n);
+
+    // // debug print
+    // for k in 0..z {
+    //     for i in 0..x {
+    //         let mut output = String::new();
+    //         for j in 0..y {
+    //             let c = match grid.get(i, j, k) {
+    //                 false => '0',
+    //                 true => '1'
+    //             };
+    //             output.push(c);
+    //         }
+    //         println!("{}", output);
+    //     }
+    //     println!();
+    // }
 
     Ok(SchematicV2::convert(&grid, &config))
 }

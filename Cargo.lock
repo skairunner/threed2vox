@@ -250,8 +250,7 @@ dependencies = [
 [[package]]
 name = "ncollide3d"
 version = "0.24.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d4ac20ca3005ba99e1778a36113a7d07e667cf460f0d43bb929be6f90278b27"
+source = "git+https://github.com/skairunner/ncollide.git?branch=transform-aabb#eeb9bfec9774d5e258d35997788774f8cf6c0102"
 dependencies = [
  "approx",
  "bitflags",

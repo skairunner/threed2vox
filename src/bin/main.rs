@@ -56,6 +56,24 @@ The largest difference between versions is pre- and post-1.13 (1241 vs 1626): th
             .takes_value(true)
             .required(true)
         )
+        .arg(Arg::with_name("x_rot")
+            .short("x")
+            .help("Each -x specified rotates the model on the x axis by 90 degrees.")
+            .multiple(true)
+            .takes_value(false)
+        )
+        .arg(Arg::with_name("y_rot")
+            .short("y")
+            .help("Each -y specified rotates the model on the y axis by 90 degrees.")
+            .multiple(true)
+            .takes_value(false)
+        )
+        .arg(Arg::with_name("z_rot")
+            .short("z")
+            .help("Each -z specified rotates the model on the z axis by 90 degrees.")
+            .multiple(true)
+            .takes_value(false)
+        )
         .get_matches_from(env::args());
 
     let config = AppConfig::from_argmatch(matches)?;
@@ -72,7 +90,7 @@ The largest difference between versions is pre- and post-1.13 (1241 vs 1626): th
     let mut file = File::create(output_path.clone())
         .expect(&format!("Could not create file '{:?}'", output_path));
 
-    nbt::to_writer(&mut file, &nbt, None);
+    nbt.to_gzip_writer(&mut file);
 
     Ok(())
 }
