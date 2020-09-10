@@ -74,6 +74,12 @@ The largest difference between versions is pre- and post-1.13 (1241 vs 1626): th
             .multiple(true)
             .takes_value(false)
         )
+        .arg(Arg::with_name("format")
+            .short("f")
+            .help("The file format in which to output the model. Valid options are: structure (str), schematic (sch).")
+            .takes_value(true)
+            .possible_values(&["structure", "str", "schematic", "sch"])
+        )
         .get_matches_from(env::args());
 
     let config = AppConfig::from_argmatch(matches)?;
