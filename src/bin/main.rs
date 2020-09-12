@@ -6,11 +6,15 @@ use std::path::Path;
 
 use clap::{Arg, App};
 use threed2vox::to_schematic;
-use threed2vox::config::{VoxelOption, Config as AppConfig};
+use threed2vox::config::Config as AppConfig;
 use simplelog::*;
 
 fn main() -> anyhow::Result<()> {
     SimpleLogger::new(LevelFilter::Debug, Config::default());
+
+    let cpu_count = num_cpus::get() - 1;
+    println!("[INFO] Spawning {:?} threads", cpu_count);
+    rayon::ThreadPoolBuilder::new().num_threads(cpu_count).build_global()?;
 
     let matches = App::new("threed2vox")
         .version("1.0")
@@ -90,13 +94,13 @@ The largest difference between versions is pre- and post-1.13 (1241 vs 1626): th
     let nbt = to_schematic(config)?;
 
     // Output nbt to file.
-    let output_path = path.join(Path::new(&format!("{}.schematic", file_stem)));
+    let output_path = path.join(Path::new(&format!("{}.schem", file_stem)));
     println!("[INFO] Writing to '{}'", output_path.to_str().unwrap());
 
     let mut file = File::create(output_path.clone())
         .expect(&format!("Could not create file '{:?}'", output_path));
 
-    nbt.to_gzip_writer(&mut file);
+    nbt.to_gzip_writer(&mut file)?;
 
     Ok(())
 }

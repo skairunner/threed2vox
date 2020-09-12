@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use ncollide3d::na::{Isometry3, Point3, Vector3};
 use ncollide3d::query;
 use ncollide3d::query::Proximity;
@@ -11,6 +9,8 @@ use nbtifier::SchematicV2;
 use voxel_grid::VoxelGrid;
 
 use crate::nbtifier::NBTIfy;
+use rayon::prelude::*;
+use std::sync::Mutex;
 
 pub mod voxel_grid;
 pub mod nbtifier;
@@ -91,25 +91,35 @@ pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Blob> {
 
     // Iterate over voxels and do collision tests
     println!("[INFO] Dimensions of the model are {}x{}x{}", x, y, z);
-    let mut n = 0;
-    for i in 0..x {
-        println!("[INFO] {:.1}%", (i as f32) / (x as f32) * 100.0);
-        for j in 0..y {
-            for k in 0..z {
-                let transform = Isometry3::translation(
-                    (i as f32) * voxel_size - voxel_half, (j as f32) * voxel_size - voxel_half, (k as f32) * voxel_size - voxel_half);
-                let proximity = query::proximity(&transform, &voxel, &Isometry3::translation(0.0, 0.0, 0.0), &trimesh, 0.0);
-                match proximity {
-                    Proximity::Intersecting => {
-                        grid.set(i, j, k, true);
-                        n += 1;
-                    },
-                    _ => ()
-                }
-            }
-        }
-    }
-    println!("[INFO] Total {} blocks", n);
+    let progress = Mutex::new(0);
+    let results: Vec<_> = (0..x)
+        .into_par_iter()
+        .map(|i| {
+            let result = (0..y).into_par_iter()
+                .map(|j| {
+                    (0..z).into_par_iter()
+                        .filter_map(|k| {
+                            let transform = Isometry3::translation(
+                                (i as f32) * voxel_size - voxel_half, (j as f32) * voxel_size - voxel_half, (k as f32) * voxel_size - voxel_half
+                            );
+                            let proximity = query::proximity(&transform, &voxel, &Isometry3::translation(0.0, 0.0, 0.0), &trimesh, 0.0);
+                            match proximity {
+                                Proximity::Intersecting => Some((i, j, k)),
+                                _ => None
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .flatten()
+                .collect::<Vec<_>>();
+            let mut p = progress.lock().unwrap();
+            *p += 1;
+            println!("[INFO] Progress {:.2}%", (*p as f32) / (x as f32) * 100.0);
+            result
+        })
+        .flatten()
+        .collect();
+    results.into_iter().for_each(|(i, j, k)| grid.set(i, j, k, true));
 
     // // debug print
     // for k in 0..z {
@@ -127,5 +137,5 @@ pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Blob> {
     //     println!();
     // }
 
-    Ok(SchematicV2::convert(&grid, &config))
+    Ok(SchematicV2::convert(&grid, &config).unwrap())
 }

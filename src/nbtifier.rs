@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::time::SystemTime;
 
 use nbt::{Value, Blob};
-use serde::Serialize;
 
 use crate::voxel_grid::VoxelGrid;
 use crate::config::Config;
@@ -12,7 +11,7 @@ pub trait NBTIfy {
     /// # Arguments
     /// * `grid`: The VoxelGrid to use
     /// * `block`: The Block ID string to fill non-empty cells with
-    fn convert(grid: &VoxelGrid, config: &Config) -> Blob;
+    fn convert(grid: &VoxelGrid, config: &Config) -> anyhow::Result<Blob>;
 }
 
 pub fn varint_from_int(mut i: u32) -> Vec<u8> {
@@ -55,11 +54,11 @@ pub struct SchematicV1;
 pub struct SchematicV2;
 
 impl NBTIfy for SchematicV2 {
-    fn convert(grid: &VoxelGrid, config: &Config) -> Blob {
+    fn convert(grid: &VoxelGrid, config: &Config) -> anyhow::Result<Blob> {
         let mut root = nbt::Blob::new();
 
-        root.insert("Version".to_string(), Value::Int(2));
-        root.insert("DataVersion".to_string(), Value::Int(config.data_version));
+        root.insert("Version".to_string(), Value::Int(2))?;
+        root.insert("DataVersion".to_string(), Value::Int(config.data_version))?;
 
         let mut metadata = HashMap::new();
         metadata.insert("Name".to_string(), Value::String(config.filename.clone()));
@@ -70,18 +69,18 @@ impl NBTIfy for SchematicV2 {
             .as_secs();
         metadata.insert("Date".to_string(), Value::Long(now as i64));
         metadata.insert("RequiredMods".to_string(), Value::List(Vec::new()));
-        root.insert("Metadata".to_string(), Value::Compound(metadata));
+        root.insert("Metadata".to_string(), Value::Compound(metadata))?;
 
         let (x, y, z) = grid.dimensions;
-        root.insert("Width".to_string(), Value::Short(x as i16));
-        root.insert("Height".to_string(), Value::Short(y as i16));
-        root.insert("Length".to_string(), Value::Short(z as i16));
+        root.insert("Width".to_string(), Value::Short(x as i16))?;
+        root.insert("Height".to_string(), Value::Short(y as i16))?;
+        root.insert("Length".to_string(), Value::Short(z as i16))?;
 
-        root.insert("PaletteMax".to_string(), Value::Int(2));
+        root.insert("PaletteMax".to_string(), Value::Int(2))?;
         let mut palette: HashMap<String, Value> = HashMap::new();
         palette.insert("minecraft:air".to_string(), Value::Int(0));
         palette.insert(config.block.clone(), Value::Int(1));
-        root.insert("Palette".to_string(), Value::Compound(palette));
+        root.insert("Palette".to_string(), Value::Compound(palette))?;
 
         let mut block_data: Vec<u32> = Vec::new();
         for y in 0..grid.dimensions.1 {
@@ -96,9 +95,8 @@ impl NBTIfy for SchematicV2 {
             }
         }
         let block_data = varint_from_intarray(block_data);
-        root.insert("BlockData".to_string(), Value::ByteArray(bytearray_from_varint(block_data)))
-            .unwrap();
+        root.insert("BlockData".to_string(), Value::ByteArray(bytearray_from_varint(block_data)))?;
 
-        root
+        Ok(root)
     }
 }

@@ -21,6 +21,8 @@ clap = "2.33.0"
 hematite-nbt = "0.5.0"
 log = "0.4.11"
 ncollide3d = { version = "0.24.0", git="https://github.com/skairunner/ncollide.git", branch="transform-aabb" }
+num_cpus = "1.13.0"
+rayon = "1.4.0"
 serde = "1.0.115"
 simplelog = "0.8.0"
 strsim = "0.10.0"
