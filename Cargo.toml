@@ -7,6 +7,10 @@ edition = "2018"
 [profile.dev]
 opt-level = 1
 
+[target.x86_64-apple-darwin]
+linker = "x86_64-apple-darwin14-clang"
+ar = "x86_64-apple-darwin14-ar"
+
 [[bin]]
 name = "threed2vox"
 path = "src/bin/main.rs"
@@ -20,7 +24,7 @@ anyhow = "1.0.32"
 clap = "2.33.0"
 hematite-nbt = "0.5.0"
 log = "0.4.11"
-ncollide3d = { version = "0.24.0", git="https://github.com/skairunner/ncollide.git", branch="transform-aabb" }
+ncollide3d = { git="https://github.com/dimforge/ncollide", rev="858b349" }
 num_cpus = "1.13.0"
 rayon = "1.4.0"
 serde = "1.0.115"

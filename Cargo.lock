@@ -318,7 +318,7 @@ dependencies = [
 [[package]]
 name = "ncollide3d"
 version = "0.24.0"
-source = "git+https://github.com/skairunner/ncollide.git?branch=transform-aabb#eeb9bfec9774d5e258d35997788774f8cf6c0102"
+source = "git+https://github.com/dimforge/ncollide?rev=858b349#858b349706fc38a97417b78fea88647aac375fcc"
 dependencies = [
  "approx",
  "bitflags",
