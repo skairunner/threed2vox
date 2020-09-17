@@ -1,20 +1,20 @@
-
-
 use std::env;
 use std::fs::File;
 use std::path::Path;
 
-use clap::{Arg, App};
-use threed2vox::to_schematic;
-use threed2vox::config::Config as AppConfig;
+use clap::{App, Arg};
 use simplelog::*;
+use threed2vox::config::Config as AppConfig;
+use threed2vox::to_schematic;
 
 fn main() -> anyhow::Result<()> {
     SimpleLogger::new(LevelFilter::Debug, Config::default());
 
     let cpu_count = num_cpus::get() - 1;
     println!("[INFO] Spawning {:?} threads", cpu_count);
-    rayon::ThreadPoolBuilder::new().num_threads(cpu_count).build_global()?;
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(cpu_count)
+        .build_global()?;
 
     let matches = App::new("threed2vox")
         .version("1.0")

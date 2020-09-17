@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::time::SystemTime;
 
-use nbt::{Value, Blob};
+use nbt::{Blob, Value};
 
-use crate::voxel_grid::VoxelGrid;
 use crate::config::Config;
+use crate::voxel_grid::VoxelGrid;
 
 pub trait NBTIfy {
     /// Convert the voxel grid into a suitable NBT format
@@ -15,7 +15,7 @@ pub trait NBTIfy {
 }
 
 pub fn varint_from_int(mut i: u32) -> Vec<u8> {
-    let mut output = vec!();
+    let mut output = vec![];
     while (i & 128) != 0 {
         output.push((i & 127 | 128) as u8);
         i >>= 7;
@@ -25,7 +25,7 @@ pub fn varint_from_int(mut i: u32) -> Vec<u8> {
 }
 
 pub fn varint_from_intarray(array: Vec<u32>) -> Vec<u8> {
-    let mut output = vec!();
+    let mut output = vec![];
     for i in array {
         output.append(&mut varint_from_int(i));
     }
@@ -62,7 +62,10 @@ impl NBTIfy for SchematicV2 {
 
         let mut metadata = HashMap::new();
         metadata.insert("Name".to_string(), Value::String(config.filename.clone()));
-        metadata.insert("Author".to_string(), Value::String("threed2vox".to_string()));
+        metadata.insert(
+            "Author".to_string(),
+            Value::String("threed2vox".to_string()),
+        );
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
@@ -88,14 +91,17 @@ impl NBTIfy for SchematicV2 {
                 for x in 0..grid.dimensions.0 {
                     let id = match grid.get(x, y, z) {
                         true => 1,
-                        false => 0
+                        false => 0,
                     };
                     block_data.push(id);
                 }
             }
         }
         let block_data = varint_from_intarray(block_data);
-        root.insert("BlockData".to_string(), Value::ByteArray(bytearray_from_varint(block_data)))?;
+        root.insert(
+            "BlockData".to_string(),
+            Value::ByteArray(bytearray_from_varint(block_data)),
+        )?;
 
         Ok(root)
     }

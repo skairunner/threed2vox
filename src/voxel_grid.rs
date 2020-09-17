@@ -10,13 +10,12 @@ impl VoxelGrid {
     pub fn new(x: i32, y: i32, z: i32) -> Self {
         Self {
             dimensions: (x, y, z),
-            map: Default::default()
+            map: Default::default(),
         }
     }
 
     pub fn get(&self, x: i32, y: i32, z: i32) -> &bool {
-        self.map.get(&(x, y, z))
-            .unwrap_or(&false)
+        self.map.get(&(x, y, z)).unwrap_or(&false)
     }
 
     pub fn set(&mut self, x: i32, y: i32, z: i32, is_set: bool) {

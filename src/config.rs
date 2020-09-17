@@ -1,15 +1,14 @@
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
-use std::io::Read;
 use std::collections::HashMap;
+use std::io::Read;
 use std::path::Path;
-
 
 pub enum VoxelOption {
     /// Explicitly define a voxel size
     VoxelSize(f32),
     /// Define the voxel length of the longest axis of the model's AABB.
-    MeshSize(f32)
+    MeshSize(f32),
 }
 
 /// Pass around configuration options easily.
@@ -33,38 +32,42 @@ pub struct Config {
 
 impl Config {
     pub fn from_argmatch(args: ArgMatches) -> Result<Self> {
-        let input_path = args.value_of("input")
+        let input_path = args
+            .value_of("input")
             .ok_or_else(|| anyhow!("No input specified"))?
             .to_string();
         let filename = Path::new(&input_path)
             .file_stem()
-            .expect(format!("The path '{}' doesn't seem to contain a file name", input_path).as_str())
+            .expect(
+                format!(
+                    "The path '{}' doesn't seem to contain a file name",
+                    input_path
+                )
+                .as_str(),
+            )
             .to_str()
             .unwrap()
             .to_string();
 
-        let version = args.value_of("minecraft version")
+        let version = args
+            .value_of("minecraft version")
             .ok_or_else(|| anyhow!("No version specified"))?;
-        let block = args.value_of("block")
-            .unwrap_or("stone")
-            .to_string();
+        let block = args.value_of("block").unwrap_or("stone").to_string();
         let data_version = match version.parse() {
             Ok(n) => n,
-            Err(_) => Self::parse_version_string(version)
+            Err(_) => Self::parse_version_string(version),
         };
 
         // Checks for scale.
         let voxel_size = match args.value_of("scale") {
             Some(s) => {
-                let n = s.parse()
-                    .unwrap_or(1.0);
+                let n = s.parse().unwrap_or(1.0);
                 VoxelOption::VoxelSize(n)
-            },
+            }
             None => {
                 // If scale doesn't exist, check for size. If size doesn't exist, default is 1.0
                 let s = args.value_of("max_size").unwrap_or("1.0");
-                let n = s.parse()
-                    .unwrap_or(1.0);
+                let n = s.parse().unwrap_or(1.0);
                 VoxelOption::MeshSize(n)
             }
         };
@@ -83,7 +86,7 @@ impl Config {
             filename,
             x_rot,
             y_rot,
-            z_rot
+            z_rot,
         })
     }
 
@@ -98,11 +101,12 @@ impl Config {
 
         // First, try to look it up directly, and if it's in there return it
         if index.contains_key(version) {
-            return index[version]
+            return index[version];
         }
 
         // Next, try to find the version str with the closest distance.
-        let result = index.into_iter()
+        let result = index
+            .into_iter()
             .map(|(k, v)| (normalized_levenshtein(&k, version), k, v))
             // Find the max.
             .fold((-1.0, String::new(), 0), |prev, this| {
@@ -112,7 +116,10 @@ impl Config {
                     prev
                 }
             });
-        println!("[INFO] Could not find version '{}', using closest match '{}'.", version, result.1);
+        println!(
+            "[INFO] Could not find version '{}', using closest match '{}'.",
+            version, result.1
+        );
         result.2
     }
 }
