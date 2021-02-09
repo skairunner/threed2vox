@@ -8,7 +8,7 @@ Supports WorldEdit schematic format, and any block to be output. Though Structur
 Clone the repo and run:
 
 ```
-cargo run -- --output schematics/ --max_size 50 --block create:granite --version 1.16 -x my_input.obj
+cargo run -- --output schematics/ --size 50 --block create:granite --version 1.16 -x my_input.obj
 ```
 
 

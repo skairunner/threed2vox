@@ -17,7 +17,11 @@ pub mod nbtifier;
 pub mod voxel_grid;
 
 pub fn read_obj(path: &str) -> anyhow::Result<Vec<Model>> {
-    let (model, _) = load_obj(path, true)?;
+    let (model, _) = load_obj(path, true)
+        .map_err(|e| {
+            log::error!("Could not open file {}: {:?}", path, e);
+            e
+        })?;
     Ok(model)
 }
 
@@ -29,8 +33,8 @@ fn obj_to_trimesh(objs: Vec<Model>) -> TriMesh<f32> {
     for obj in objs.into_iter() {
         let mesh = obj.mesh;
 
-        let mut i = 0;
-        while i <= mesh.indices.len() - 3 {
+        let mut i: usize = 0;
+        while i as i32 <= (mesh.indices.len() as i32) - 3 {
             let i1 = mesh.indices[i] as usize;
             let i2 = mesh.indices[i + 1] as usize;
             let i3 = mesh.indices[i + 2] as usize;
@@ -38,8 +42,8 @@ fn obj_to_trimesh(objs: Vec<Model>) -> TriMesh<f32> {
             i += 3;
         }
 
-        let mut i = 0;
-        while i <= mesh.positions.len() - 3 {
+        let mut i: usize = 0;
+        while i as i32 <= (mesh.positions.len() as i32) - 3 {
             let p1 = mesh.positions[i];
             let p2 = mesh.positions[i + 1];
             let p3 = mesh.positions[i + 2];
@@ -53,6 +57,7 @@ fn obj_to_trimesh(objs: Vec<Model>) -> TriMesh<f32> {
 
 /// Read object from path and step through it with a given voxel size.
 pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Blob> {
+    log::info!("Loading model.");
     let obj = read_obj(&config.input_path)?;
     let mut trimesh = obj_to_trimesh(obj);
 
@@ -97,7 +102,7 @@ pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Blob> {
     let voxel = Cuboid::new(Vector3::new(voxel_half, voxel_half, voxel_half));
 
     // Iterate over voxels and do collision tests
-    println!("[INFO] Dimensions of the model are {}x{}x{}", x, y, z);
+    log::info!("Dimensions of the model are {}x{}x{}. Starting conversion.", x, y, z);
     let progress = Mutex::new(0);
     let results: Vec<_> = (0..x)
         .into_par_iter()
@@ -131,7 +136,7 @@ pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Blob> {
                 .collect::<Vec<_>>();
             let mut p = progress.lock().unwrap();
             *p += 1;
-            println!("[INFO] Progress {:.2}%", (*p as f32) / (x as f32) * 100.0);
+            log::info!("Progress {:.2}%", (*p as f32) / (x as f32) * 100.0);
             result
         })
         .flatten()

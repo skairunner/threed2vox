@@ -49,7 +49,7 @@ pub fn bytearray_from_varint(array: Vec<u8>) -> Vec<i8> {
 /// As defined https://github.com/SpongePowered/Schematic-Specification/blob/master/versions/schematic-1.md
 pub struct SchematicV1;
 
-/// Schematic version post-1.13
+/// Schematic version post-1.13, aka files with extension .schem
 /// As defined https://github.com/SpongePowered/Schematic-Specification/blob/master/versions/schematic-2.md
 pub struct SchematicV2;
 
@@ -104,5 +104,15 @@ impl NBTIfy for SchematicV2 {
         )?;
 
         Ok(root)
+    }
+}
+
+/// Structure format, aka "NBT format" with extension .nbt
+/// As defined in https://minecraft.gamepedia.com/Structure_block_file_format
+pub struct StructureFormat;
+
+impl NBTIfy for StructureFormat {
+    fn convert(grid: &VoxelGrid, config: &Config) -> anyhow::Result<Blob> {
+        unimplemented!()
     }
 }

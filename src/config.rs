@@ -76,7 +76,6 @@ impl Config {
         let x_rot = std::f32::consts::FRAC_PI_2 * (args.occurrences_of("x_rot") as f32);
         let y_rot = std::f32::consts::FRAC_PI_2 * (args.occurrences_of("y_rot") as f32);
         let z_rot = std::f32::consts::FRAC_PI_2 * (args.occurrences_of("z_rot") as f32);
-        println!("[INFO] {} {} {}", x_rot, y_rot, z_rot);
 
         Ok(Self {
             voxel_size,
