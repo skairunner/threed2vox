@@ -9,7 +9,7 @@ fn main() {
     TermLogger::init(LevelFilter::Debug, config, TerminalMode::Mixed);
 
     let config = Config {
-        voxel_size: VoxelOption::MeshSize(20.0),
+        voxel_size: VoxelOption::MeshSize(15.0),
         data_version: 2566,
         input_path: "models/teapot.obj".to_string(),
         filename: "teapot".to_string(),
