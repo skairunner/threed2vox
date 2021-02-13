@@ -19,6 +19,10 @@ path = "src/bin/main.rs"
 name = "tester"
 path = "src/bin/tester.rs"
 
+[[bin]]
+name = "bench_teapot"
+path = "src/bin/bench_teapot.rs"
+
 [dependencies]
 anyhow = "1.0.32"
 clap = "2.33.0"

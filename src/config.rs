@@ -28,6 +28,7 @@ pub struct Config {
     pub x_rot: f32,
     pub y_rot: f32,
     pub z_rot: f32,
+    pub threads: usize,
 }
 
 impl Config {
@@ -77,6 +78,15 @@ impl Config {
         let y_rot = std::f32::consts::FRAC_PI_2 * (args.occurrences_of("y_rot") as f32);
         let z_rot = std::f32::consts::FRAC_PI_2 * (args.occurrences_of("z_rot") as f32);
 
+        let mut threads: usize = args.value_of("threads")
+            .unwrap_or("0")
+            .parse()
+            .expect("Arg 'threads' should be an integer.");
+
+        if threads < 1 {
+            threads = num_cpus::get() - 1;
+        }
+
         Ok(Self {
             voxel_size,
             data_version,
@@ -86,6 +96,7 @@ impl Config {
             x_rot,
             y_rot,
             z_rot,
+            threads,
         })
     }
 

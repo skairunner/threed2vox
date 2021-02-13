@@ -13,12 +13,6 @@ fn main() -> anyhow::Result<()> {
         .build();
     TermLogger::init(LevelFilter::Debug, config, TerminalMode::Mixed);
 
-    let cpu_count = num_cpus::get() - 1;
-    log::info!("Spawning {:?} threads", cpu_count);
-    rayon::ThreadPoolBuilder::new()
-        .num_threads(cpu_count)
-        .build_global()?;
-
     let matches = App::new("threed2vox")
         .version("1.0")
         .author("Sky")
@@ -87,9 +81,20 @@ The largest difference between versions is pre- and post-1.13 (1241 vs 1626): th
             .takes_value(true)
             .possible_values(&["structure", "str", "schematic", "sch"])
         )
+        .arg(Arg::with_name("threads")
+            .short("t")
+            .help("Manually specify the number of threads to use. The default is [num physical threads] - 1.")
+            .takes_value(true)
+        )
         .get_matches_from(env::args());
 
     let config = AppConfig::from_argmatch(matches)?;
+
+    log::info!("Spawning {} threads", config.threads);
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(config.threads)
+        .build_global()?;
+
     let input_path = config.input_path.clone();
     let path = Path::new(&input_path).parent().unwrap();
     let file_stem = config.filename.clone();
