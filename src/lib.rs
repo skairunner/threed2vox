@@ -17,11 +17,10 @@ pub mod nbtifier;
 pub mod voxel_grid;
 
 pub fn read_obj(path: &str) -> anyhow::Result<Vec<Model>> {
-    let (model, _) = load_obj(path, true)
-        .map_err(|e| {
-            log::error!("Could not open file {}: {:?}", path, e);
-            e
-        })?;
+    let (model, _) = load_obj(path, true).map_err(|e| {
+        log::error!("Could not open file {}: {:?}", path, e);
+        e
+    })?;
     Ok(model)
 }
 
@@ -98,49 +97,20 @@ pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Blob> {
     let z = f32::ceil(extents.z / voxel_size) as i32 + 1;
 
     let mut grid = VoxelGrid::new(x, y, z);
-    let voxel_half = voxel_size / 2.0;
-    let voxel = Cuboid::new(Vector3::new(voxel_half, voxel_half, voxel_half));
 
     // Iterate over voxels and do collision tests
-    log::info!("Dimensions of the model are {}x{}x{}. Starting conversion.", x, y, z);
-    let progress = Mutex::new(0);
-    let results: Vec<_> = (0..x)
-        .into_par_iter()
-        .map(|i| {
-            let result = (0..y)
-                .into_par_iter()
-                .map(|j| {
-                    (0..z)
-                        .into_par_iter()
-                        .filter_map(|k| {
-                            let transform = Isometry3::translation(
-                                (i as f32) * voxel_size - voxel_half,
-                                (j as f32) * voxel_size - voxel_half,
-                                (k as f32) * voxel_size - voxel_half,
-                            );
-                            let proximity = query::proximity(
-                                &transform,
-                                &voxel,
-                                &Isometry3::translation(0.0, 0.0, 0.0),
-                                &trimesh,
-                                0.0,
-                            );
-                            match proximity {
-                                Proximity::Intersecting => Some((i, j, k)),
-                                _ => None,
-                            }
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .flatten()
-                .collect::<Vec<_>>();
-            let mut p = progress.lock().unwrap();
-            *p += 1;
-            log::info!("Progress {:.2}%", (*p as f32) / (x as f32) * 100.0);
-            result
-        })
-        .flatten()
-        .collect();
+    log::info!(
+        "Dimensions of the model are {}x{}x{}. Starting conversion.",
+        x,
+        y,
+        z
+    );
+
+    let results = match cfg!(feature = "sequential") {
+        true => do_collision_seq((x, y, z), voxel_size, &trimesh),
+        false => do_collision_par((x, y, z), voxel_size, &trimesh),
+    };
+
     results
         .into_iter()
         .for_each(|(i, j, k)| grid.set(i, j, k, true));
@@ -162,4 +132,99 @@ pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Blob> {
     // }
 
     Ok(SchematicV2::convert(&grid, &config).unwrap())
+}
+
+fn do_collision_par(
+    xyz: (i32, i32, i32),
+    voxel_size: f32,
+    trimesh: &TriMesh<f32>,
+) -> Vec<(i32, i32, i32)> {
+    let (x, y, z) = xyz;
+    let voxel_half = voxel_size / 2.0;
+    let voxel = Cuboid::new(Vector3::new(voxel_half, voxel_half, voxel_half));
+
+    let progress = Mutex::new(0);
+    (0..x)
+        .into_par_iter()
+        .map(|i| {
+            let result = (0..y)
+                .into_par_iter()
+                .map(|j| {
+                    (0..z)
+                        .into_par_iter()
+                        .filter_map(|k| {
+                            let transform = Isometry3::translation(
+                                (i as f32) * voxel_size - voxel_half,
+                                (j as f32) * voxel_size - voxel_half,
+                                (k as f32) * voxel_size - voxel_half,
+                            );
+                            let proximity = query::proximity(
+                                &transform,
+                                &voxel,
+                                &Isometry3::translation(0.0, 0.0, 0.0),
+                                trimesh,
+                                0.0,
+                            );
+                            match proximity {
+                                Proximity::Intersecting => Some((i, j, k)),
+                                _ => None,
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .flatten()
+                .collect::<Vec<_>>();
+            let mut p = progress.lock().unwrap();
+            *p += 1;
+            log::info!("Progress {:.2}%", (*p as f32) / (x as f32) * 100.0);
+            result
+        })
+        .flatten()
+        .collect()
+}
+
+fn do_collision_seq(
+    xyz: (i32, i32, i32),
+    voxel_size: f32,
+    trimesh: &TriMesh<f32>,
+) -> Vec<(i32, i32, i32)> {
+    let (x, y, z) = xyz;
+    let voxel_half = voxel_size / 2.0;
+    let voxel = Cuboid::new(Vector3::new(voxel_half, voxel_half, voxel_half));
+
+    (0..x)
+        .into_iter()
+        .map(|i| {
+            let result = (0..y)
+                .into_iter()
+                .map(|j| {
+                    (0..z)
+                        .into_iter()
+                        .filter_map(|k| {
+                            let transform = Isometry3::translation(
+                                (i as f32) * voxel_size - voxel_half,
+                                (j as f32) * voxel_size - voxel_half,
+                                (k as f32) * voxel_size - voxel_half,
+                            );
+                            let proximity = query::proximity(
+                                &transform,
+                                &voxel,
+                                &Isometry3::translation(0.0, 0.0, 0.0),
+                                trimesh,
+                                0.0,
+                            );
+                            match proximity {
+                                Proximity::Intersecting => Some((i, j, k)),
+                                _ => None,
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .flatten()
+                .collect::<Vec<_>>();
+            log::info!("Progress {:.2}%", (i as f32) / (x as f32) * 100.0);
+            result
+        })
+        .flatten()
+        .collect()
 }

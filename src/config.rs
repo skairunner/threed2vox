@@ -78,7 +78,8 @@ impl Config {
         let y_rot = std::f32::consts::FRAC_PI_2 * (args.occurrences_of("y_rot") as f32);
         let z_rot = std::f32::consts::FRAC_PI_2 * (args.occurrences_of("z_rot") as f32);
 
-        let mut threads: usize = args.value_of("threads")
+        let mut threads: usize = args
+            .value_of("threads")
             .unwrap_or("0")
             .parse()
             .expect("Arg 'threads' should be an integer.");
