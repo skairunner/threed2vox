@@ -1,7 +1,3 @@
-use ncollide3d::na::{Isometry3, Point3, Vector3};
-use ncollide3d::query;
-use ncollide3d::query::Proximity;
-use ncollide3d::shape::{Cuboid, TriMesh};
 use tobj::{load_obj, Model};
 
 use config::{Config, VoxelOption};
@@ -11,6 +7,11 @@ use voxel_grid::VoxelGrid;
 use crate::nbtifier::NBTIfy;
 use rayon::prelude::*;
 use std::sync::Mutex;
+use nalgebra::{Vector3, Translation3};
+use parry3d::shape::{TriMesh, Cuboid};
+use parry3d::na::{Point3, Isometry3};
+use parry3d::query;
+use parry3d::motion::RigidMotionComposition;
 
 pub mod config;
 pub mod nbtifier;
@@ -25,19 +26,19 @@ pub fn read_obj(path: &str) -> anyhow::Result<Vec<Model>> {
 }
 
 /// Convert the output of tobj into one big trimesh
-fn obj_to_trimesh(objs: Vec<Model>) -> TriMesh<f32> {
+fn obj_to_trimesh(objs: Vec<Model>) -> TriMesh {
     let mut points: Vec<Point3<f32>> = vec![];
-    let mut indices: Vec<Point3<usize>> = vec![];
+    let mut indices: Vec<[u32;3]> = vec![];
 
     for obj in objs.into_iter() {
         let mesh = obj.mesh;
 
         let mut i: usize = 0;
         while i as i32 <= (mesh.indices.len() as i32) - 3 {
-            let i1 = mesh.indices[i] as usize;
-            let i2 = mesh.indices[i + 1] as usize;
-            let i3 = mesh.indices[i + 2] as usize;
-            indices.push(Point3::from([i1, i2, i3]));
+            let i1 = mesh.indices[i];
+            let i2 = mesh.indices[i + 1];
+            let i3 = mesh.indices[i + 2];
+            indices.push([i1, i2, i3]);
             i += 3;
         }
 
@@ -51,28 +52,27 @@ fn obj_to_trimesh(objs: Vec<Model>) -> TriMesh<f32> {
         }
     }
 
-    TriMesh::new(points, indices, None)
+    TriMesh::new(points, indices)
 }
 
 /// Read object from path and step through it with a given voxel size.
 pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Blob> {
     log::info!("Loading model.");
     let obj = read_obj(&config.input_path)?;
-    let mut trimesh = obj_to_trimesh(obj);
+    let trimesh = obj_to_trimesh(obj);
 
-    trimesh.transform_by(&Isometry3::rotation(Vector3::new(
+    let mut trimesh_transform = Isometry3::rotation(Vector3::new(
         config.x_rot,
         config.y_rot,
         config.z_rot,
-    )));
-
-    let mins = trimesh.aabb().mins;
-    trimesh.transform_by(&Isometry3::translation(-mins.x, -mins.y, -mins.z));
+    ));
+    let mins = trimesh.aabb(&trimesh_transform).mins;
+    trimesh_transform.translation = Translation3::new(-mins.x, -mins.y, -mins.z);
 
     let voxel_size = match config.voxel_size {
         VoxelOption::VoxelSize(s) => s,
         VoxelOption::MeshSize(s) => {
-            let aabb = trimesh.aabb();
+            let aabb = trimesh.aabb(&trimesh_transform);
             let extents = aabb.extents();
             let longest = if extents.x > extents.y {
                 extents.x
@@ -90,7 +90,7 @@ pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Blob> {
     };
 
     // Determine the voxel grid size
-    let aabb = trimesh.aabb();
+    let aabb = trimesh.aabb(&trimesh_transform);
     let extents = aabb.extents();
     let x = f32::ceil(extents.x / voxel_size) as i32 + 1;
     let y = f32::ceil(extents.y / voxel_size) as i32 + 1;
@@ -107,37 +107,51 @@ pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Blob> {
     );
 
     let results = match cfg!(feature = "sequential") {
-        true => do_collision_seq((x, y, z), voxel_size, &trimesh),
-        false => do_collision_par((x, y, z), voxel_size, &trimesh),
+        true => do_collision_seq((x, y, z), voxel_size, &trimesh, &trimesh_transform),
+        false => do_collision_par((x, y, z), voxel_size, &trimesh, &trimesh_transform),
     };
 
     results
         .into_iter()
         .for_each(|(i, j, k)| grid.set(i, j, k, true));
 
-    // // debug print
-    // for k in 0..z {
-    //     for i in 0..x {
-    //         let mut output = String::new();
-    //         for j in 0..y {
-    //             let c = match grid.get(i, j, k) {
-    //                 false => '0',
-    //                 true => '1'
-    //             };
-    //             output.push(c);
-    //         }
-    //         println!("{}", output);
-    //     }
-    //     println!();
-    // }
-
     Ok(SchematicV2::convert(&grid, &config).unwrap())
+}
+
+/// The inner part of do_collision_*
+fn actually_do_collision(
+    xyz: (i32, i32, i32),
+    voxel_size: f32,
+    voxel: &Cuboid,
+    trimesh: &TriMesh,
+    pos: &Isometry3<f32>,
+) -> Option<(i32, i32, i32)> {
+    let (x, y, z) = xyz;
+    let voxel_half = voxel_size / 2.0;
+
+    let transform = Isometry3::translation(
+        (x as f32) * voxel_size - voxel_half,
+        (y as f32) * voxel_size - voxel_half,
+        (z as f32) * voxel_size - voxel_half,
+    );
+    let proximity = query::contact(
+        &transform,
+        voxel,
+        pos,
+        trimesh,
+        0.0,
+    ).unwrap();
+    match proximity {
+        Some(_) => Some((x, y, z)),
+        None => None,
+    }
 }
 
 fn do_collision_par(
     xyz: (i32, i32, i32),
     voxel_size: f32,
-    trimesh: &TriMesh<f32>,
+    trimesh: &TriMesh,
+    pos: &Isometry3<f32>,
 ) -> Vec<(i32, i32, i32)> {
     let (x, y, z) = xyz;
     let voxel_half = voxel_size / 2.0;
@@ -152,24 +166,7 @@ fn do_collision_par(
                 .map(|j| {
                     (0..z)
                         .into_par_iter()
-                        .filter_map(|k| {
-                            let transform = Isometry3::translation(
-                                (i as f32) * voxel_size - voxel_half,
-                                (j as f32) * voxel_size - voxel_half,
-                                (k as f32) * voxel_size - voxel_half,
-                            );
-                            let proximity = query::proximity(
-                                &transform,
-                                &voxel,
-                                &Isometry3::translation(0.0, 0.0, 0.0),
-                                trimesh,
-                                0.0,
-                            );
-                            match proximity {
-                                Proximity::Intersecting => Some((i, j, k)),
-                                _ => None,
-                            }
-                        })
+                        .filter_map(|k| actually_do_collision((i, j, k), voxel_size, &voxel, trimesh, pos))
                         .collect::<Vec<_>>()
                 })
                 .flatten()
@@ -186,7 +183,8 @@ fn do_collision_par(
 fn do_collision_seq(
     xyz: (i32, i32, i32),
     voxel_size: f32,
-    trimesh: &TriMesh<f32>,
+    trimesh: &TriMesh,
+    pos: &Isometry3<f32>,
 ) -> Vec<(i32, i32, i32)> {
     let (x, y, z) = xyz;
     let voxel_half = voxel_size / 2.0;
@@ -200,24 +198,7 @@ fn do_collision_seq(
                 .map(|j| {
                     (0..z)
                         .into_iter()
-                        .filter_map(|k| {
-                            let transform = Isometry3::translation(
-                                (i as f32) * voxel_size - voxel_half,
-                                (j as f32) * voxel_size - voxel_half,
-                                (k as f32) * voxel_size - voxel_half,
-                            );
-                            let proximity = query::proximity(
-                                &transform,
-                                &voxel,
-                                &Isometry3::translation(0.0, 0.0, 0.0),
-                                trimesh,
-                                0.0,
-                            );
-                            match proximity {
-                                Proximity::Intersecting => Some((i, j, k)),
-                                _ => None,
-                            }
-                        })
+                        .filter_map(|k| actually_do_collision((i, j, k), voxel_size, &voxel, trimesh, pos))
                         .collect::<Vec<_>>()
                 })
                 .flatten()
