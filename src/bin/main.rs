@@ -11,7 +11,7 @@ fn main() -> anyhow::Result<()> {
     let config = ConfigBuilder::new()
         .set_location_level(LevelFilter::Error)
         .build();
-    TermLogger::init(LevelFilter::Debug, config, TerminalMode::Mixed);
+    TermLogger::init(LevelFilter::Debug, config, TerminalMode::Mixed).unwrap();
 
     let matches = App::new("threed2vox")
         .version("1.0")
@@ -105,7 +105,7 @@ The largest difference between versions is pre- and post-1.13 (1241 vs 1626): th
     log::info!("Writing to '{}'", output_path.to_str().unwrap());
 
     let mut file = File::create(output_path.clone())
-        .expect(&format!("Could not create file '{:?}'", output_path));
+        .unwrap_or_else(|_| panic!("Could not create file '{:?}'", output_path));
 
     nbt.to_gzip_writer(&mut file)?;
 

@@ -39,13 +39,12 @@ impl Config {
             .to_string();
         let filename = Path::new(&input_path)
             .file_stem()
-            .expect(
-                format!(
+            .unwrap_or_else(|| {
+                panic!(
                     "The path '{}' doesn't seem to contain a file name",
                     input_path
                 )
-                .as_str(),
-            )
+            })
             .to_str()
             .unwrap()
             .to_string();
