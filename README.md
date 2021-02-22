@@ -5,12 +5,15 @@ A Rust program to convert from 3D models (.obj) to Minecraft schematics (.schem)
 Supports WorldEdit schematic format, and any block to be output. Though Structure format (aka .nbt) is possible, it may or may not happen depending on the author's needs.
 
 ## How to Run
-Clone the repo and run:
+Clone the repo and run something like:
 
 ```
-cargo run -- --output schematics/ --size 50 --block create:granite --version 1.16 -x my_input.obj
+cargo run -- --output schematics/ --size 50 --block minecraft:stone --version 1.16 -x my_input.obj
 ```
 
+Make sure that the input file is at the end.
+
+## Arguments
 
 |Long|Short|Description|
 |----|-----|-----------|
@@ -19,8 +22,10 @@ cargo run -- --output schematics/ --size 50 --block create:granite --version 1.1
 |`--scale`|`-S`|Specify a units-to-blocks ratio. Defaults to 1.|
 |`--block`|`-b`|Specify what block the shell of the model will be. Defaults to stone.|
 |`--version`|`-V`|Specify the version of minecraft for which to output for. Currently only supports 1.13+|
+|`--format`|`-f`|Specify the format to output in. Valid options are "schem", "schematic" for schematic files, and "nbt", "structure" for Structure files. Defaults to Schematic.|
 ||`-x`|Rotate the model by 90 degrees on the X axis. Can specify multiple times, e.g. `-xx`|
 ||`-y`|Rotate the model by 90 degrees on the Y axis. Can specify multiple times.|
 ||`-z`|Rotate the model by 90 degrees on the Z axis. Can specify multiple times.|
+|`--threads`|`-t`|Manually specify the number of threads to use. Shouldn't be necessary, as it defaults to the number of physical cores available minus one.|
 
 

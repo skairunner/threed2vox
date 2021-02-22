@@ -83,6 +83,7 @@ The largest difference between versions is pre- and post-1.13 (1241 vs 1626): th
             .possible_values(&["structure", "str", "nbt", "schematic", "sch", "schem"])
         )
         .arg(Arg::with_name("threads")
+            .long("threads")
             .short("t")
             .help("Manually specify the number of threads to use. The default is [num physical threads] - 1.")
             .takes_value(true)
