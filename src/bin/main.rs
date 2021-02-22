@@ -76,10 +76,11 @@ The largest difference between versions is pre- and post-1.13 (1241 vs 1626): th
             .takes_value(false)
         )
         .arg(Arg::with_name("format")
+            .long("format")
             .short("f")
-            .help("The file format in which to output the model. Valid options are: structure (str), schematic (sch).")
+            .help("The file format in which to output the model. Valid options are: structure (str/nbt), schematic (sch/schem).")
             .takes_value(true)
-            .possible_values(&["structure", "str", "schematic", "sch"])
+            .possible_values(&["structure", "str", "nbt", "schematic", "sch", "schem"])
         )
         .arg(Arg::with_name("threads")
             .short("t")
@@ -98,10 +99,12 @@ The largest difference between versions is pre- and post-1.13 (1241 vs 1626): th
     let input_path = config.input_path.clone();
     let path = Path::new(&input_path).parent().unwrap();
     let file_stem = config.filename.clone();
+    let file_ending = config.nbtify.file_ending();
     let nbt = to_schematic(config)?;
 
     // Output nbt to file.
-    let output_path = path.join(Path::new(&format!("{}.schem", file_stem)));
+
+    let output_path = path.join(Path::new(&format!("{}.{}", file_stem, file_ending)));
     log::info!("Writing to '{}'", output_path.to_str().unwrap());
 
     let mut file = File::create(output_path.clone())

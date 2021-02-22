@@ -1,10 +1,8 @@
 use tobj::{load_obj, Model};
 
 use config::{Config, VoxelOption};
-use nbtifier::SchematicV2;
 use voxel_grid::VoxelGrid;
 
-use crate::nbtifier::NBTIfy;
 use nalgebra::{Translation3, Vector3};
 use parry3d::na::{Isometry3, Point3};
 use parry3d::query;
@@ -13,6 +11,7 @@ use rayon::prelude::*;
 use std::sync::Mutex;
 
 pub mod config;
+mod nbt_helper;
 pub mod nbtifier;
 pub mod voxel_grid;
 
@@ -111,7 +110,7 @@ pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Blob> {
         .into_iter()
         .for_each(|(i, j, k)| grid.set(i, j, k, true));
 
-    Ok(SchematicV2::convert(&grid, &config).unwrap())
+    Ok(config.nbtify.convert(&grid, &config).unwrap())
 }
 
 /// The inner part of do_collision_*

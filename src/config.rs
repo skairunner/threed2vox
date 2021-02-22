@@ -1,3 +1,4 @@
+use crate::nbtifier::{NBTIfy, SchematicV2, StructureFormat};
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
 use std::collections::HashMap;
@@ -28,7 +29,10 @@ pub struct Config {
     pub x_rot: f32,
     pub y_rot: f32,
     pub z_rot: f32,
+    /// Number of threads to use
     pub threads: usize,
+    /// Output file format
+    pub nbtify: Box<dyn NBTIfy>,
 }
 
 impl Config {
@@ -87,6 +91,15 @@ impl Config {
             threads = num_cpus::get() - 1;
         }
 
+        let nbtify: Box<dyn NBTIfy> = match args.value_of("format").unwrap_or("schematic") {
+            "schematic" | "schem" | "sch" => Box::new(SchematicV2),
+            "structure" | "str" | "nbt" => Box::new(StructureFormat),
+            s => panic!(
+                "Somehow encountered string {:?} when it should've been impossible",
+                s
+            ),
+        };
+
         Ok(Self {
             voxel_size,
             data_version,
@@ -97,6 +110,7 @@ impl Config {
             y_rot,
             z_rot,
             threads,
+            nbtify,
         })
     }
 

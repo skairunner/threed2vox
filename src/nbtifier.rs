@@ -4,6 +4,7 @@ use std::time::SystemTime;
 use nbt::{Blob, Value};
 
 use crate::config::Config;
+use crate::nbt_helper::list_from_intvec;
 use crate::voxel_grid::VoxelGrid;
 
 pub trait NBTIfy {
@@ -11,7 +12,10 @@ pub trait NBTIfy {
     /// # Arguments
     /// * `grid`: The VoxelGrid to use
     /// * `block`: The Block ID string to fill non-empty cells with
-    fn convert(grid: &VoxelGrid, config: &Config) -> anyhow::Result<Blob>;
+    fn convert(&self, grid: &VoxelGrid, config: &Config) -> anyhow::Result<Blob>;
+
+    /// Get the appropriate file extension for this format
+    fn file_ending(&self) -> &'static str;
 }
 
 pub fn varint_from_int(mut i: u32) -> Vec<u8> {
@@ -54,7 +58,7 @@ pub struct SchematicV1;
 pub struct SchematicV2;
 
 impl NBTIfy for SchematicV2 {
-    fn convert(grid: &VoxelGrid, config: &Config) -> anyhow::Result<Blob> {
+    fn convert(&self, grid: &VoxelGrid, config: &Config) -> anyhow::Result<Blob> {
         let mut root = nbt::Blob::new();
 
         root.insert("Version".to_string(), Value::Int(2))?;
@@ -80,11 +84,16 @@ impl NBTIfy for SchematicV2 {
         root.insert("Length".to_string(), Value::Short(z as i16))?;
 
         root.insert("PaletteMax".to_string(), Value::Int(2))?;
-        let mut palette: HashMap<String, Value> = HashMap::new();
+
+        // Set the palette
+        let mut palette = HashMap::new();
+
         palette.insert("minecraft:air".to_string(), Value::Int(0));
         palette.insert(config.block.clone(), Value::Int(1));
+
         root.insert("Palette".to_string(), Value::Compound(palette))?;
 
+        // Insert block data
         let mut block_data: Vec<u32> = Vec::new();
         for y in 0..grid.dimensions.1 {
             for z in 0..grid.dimensions.2 {
@@ -105,6 +114,10 @@ impl NBTIfy for SchematicV2 {
 
         Ok(root)
     }
+
+    fn file_ending(&self) -> &'static str {
+        "schem"
+    }
 }
 
 /// Structure format, aka "NBT format" with extension .nbt
@@ -112,7 +125,40 @@ impl NBTIfy for SchematicV2 {
 pub struct StructureFormat;
 
 impl NBTIfy for StructureFormat {
-    fn convert(grid: &VoxelGrid, config: &Config) -> anyhow::Result<Blob> {
-        unimplemented!()
+    fn convert(&self, grid: &VoxelGrid, config: &Config) -> anyhow::Result<Blob> {
+        let mut root = nbt::Blob::new();
+        root.insert("DataVersion".to_string(), Value::Int(config.data_version))?;
+        let (x, y, z) = grid.dimensions;
+        root.insert("size", list_from_intvec(vec![x, y, z]))?;
+
+        // Unlike schematics, we can get away with only having non-air blocks in an nbt
+        let palette = vec![Value::Compound(maplit::hashmap! {
+            "Name".to_string() => Value::String(config.block.clone()),
+            "Properties".to_string() => Value::Compound(HashMap::new())
+        })];
+        root.insert("palette".to_string(), Value::List(palette))?;
+
+        let mut block_data: Vec<Value> = Vec::new();
+        for y in 0..grid.dimensions.1 {
+            for z in 0..grid.dimensions.2 {
+                for x in 0..grid.dimensions.0 {
+                    if *grid.get(x, y, z) {
+                        let pos = list_from_intvec(vec![x, y, z]);
+                        let value = Value::Compound(maplit::hashmap! {
+                            "state".to_string() => Value::Int(0),
+                            "pos".to_string() => pos
+                        });
+                        block_data.push(value);
+                    }
+                }
+            }
+        }
+        root.insert("blocks".to_string(), Value::List(block_data))?;
+
+        Ok(root)
+    }
+
+    fn file_ending(&self) -> &'static str {
+        "nbt"
     }
 }
