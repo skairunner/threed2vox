@@ -1,8 +1,8 @@
 use simplelog::{ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
 use threed2vox::config::{Config, VoxelOption};
 use threed2vox::nbtifier::SchematicV2;
+use threed2vox::readers::obj::ObjReader;
 use threed2vox::to_schematic;
-use threed2vox::nbtifier::SchematicV2;
 
 fn main() {
     let config = ConfigBuilder::new()
@@ -21,6 +21,7 @@ fn main() {
         z_rot: 0.0,
         threads: 4,
         nbtify: Box::new(SchematicV2),
+        reader: Box::new(ObjReader),
     };
     let blob = to_schematic(config).unwrap();
     println!("{}", blob.len_bytes());

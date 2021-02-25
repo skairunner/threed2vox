@@ -1,4 +1,6 @@
 use crate::nbtifier::{NBTIfy, SchematicV2, StructureFormat};
+use crate::readers::obj::ObjReader;
+use crate::readers::reader::Reader;
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
 use std::collections::HashMap;
@@ -33,6 +35,8 @@ pub struct Config {
     pub threads: usize,
     /// Output file format
     pub nbtify: Box<dyn NBTIfy>,
+    /// Input file format
+    pub reader: Box<dyn Reader>,
 }
 
 impl Config {
@@ -52,6 +56,20 @@ impl Config {
             .to_str()
             .unwrap()
             .to_string();
+
+        let file_extension = Path::new(&input_path)
+            .extension()
+            .unwrap_or_default()
+            .to_str()
+            .unwrap();
+
+        let reader: Box<dyn Reader> = match file_extension {
+            "obj" => Box::new(ObjReader),
+            f => panic!(
+                "The file extension {:?} is not supported. Valid files include: obj",
+                f
+            ),
+        };
 
         let version = args
             .value_of("minecraft version")
@@ -111,6 +129,7 @@ impl Config {
             z_rot,
             threads,
             nbtify,
+            reader,
         })
     }
 

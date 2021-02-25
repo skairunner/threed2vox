@@ -2,7 +2,7 @@
 
 A Rust program to convert from 3D models (.obj) to Minecraft schematics (.schem). Takes full advantage of parallel cores to speed up generation.
 
-Supports WorldEdit schematic format, and any block to be output. Though Structure format (aka .nbt) is possible, it may or may not happen depending on the author's needs.
+Can output WorldEdit Schematics (`.schem`) and Structure Format (`.nbt`), and any block can be output.
 
 ## How to Run
 Clone the repo and run something like:
