@@ -5,7 +5,9 @@ use voxel_grid::VoxelGrid;
 
 use nalgebra::{Translation3, Vector3};
 use parry3d::na::{Isometry3, Point3};
-use parry3d::query;
+use parry3d::query::{
+    ContactManifold, ContactManifoldsWorkspace, DefaultQueryDispatcher, PersistentQueryDispatcher,
+};
 use parry3d::shape::{Cuboid, TriMesh};
 use rayon::prelude::*;
 use std::sync::Mutex;
@@ -120,6 +122,8 @@ fn actually_do_collision(
     voxel: &Cuboid,
     trimesh: &TriMesh,
     pos: &Isometry3<f32>,
+    manifold: &mut Vec<ContactManifold<(), ()>>,
+    workspace: &mut Option<ContactManifoldsWorkspace>,
 ) -> Option<(i32, i32, i32)> {
     let (x, y, z) = xyz;
     let voxel_half = voxel_size / 2.0;
@@ -129,10 +133,19 @@ fn actually_do_collision(
         (y as f32) * voxel_size - voxel_half,
         (z as f32) * voxel_size - voxel_half,
     );
-    let proximity = query::contact(&transform, voxel, pos, trimesh, 0.0).unwrap();
-    match proximity {
-        Some(_) => Some((x, y, z)),
-        None => None,
+
+    let dispatch = DefaultQueryDispatcher;
+
+    // See source code for contact_shape_shape for why
+    let pos12 = transform.inv_mul(pos);
+
+    dispatch
+        .contact_manifolds(&pos12, voxel, trimesh, 0.0, manifold, workspace)
+        .unwrap();
+
+    match manifold.len() {
+        0 => None,
+        _ => Some((x, y, z)),
     }
 }
 
@@ -153,11 +166,34 @@ fn do_collision_par(
             let result = (0..y)
                 .into_par_iter()
                 .map(|j| {
-                    (0..z)
+                    let mut range = (0..z).peekable();
+                    let mut z_range = Vec::new();
+                    while range.peek().is_some() {
+                        let chunk: Vec<_> = range.by_ref().take(100).collect();
+                        z_range.push(chunk);
+                    }
+                    z_range
                         .into_par_iter()
-                        .filter_map(|k| {
-                            actually_do_collision((i, j, k), voxel_size, &voxel, trimesh, pos)
+                        .map(|ks| {
+                            let mut manifolds = Vec::new();
+                            let mut workspace = None;
+                            let mut output = Vec::new();
+                            for k in ks {
+                                if let Some(o) = actually_do_collision(
+                                    (i, j, k),
+                                    voxel_size,
+                                    &voxel,
+                                    trimesh,
+                                    pos,
+                                    &mut manifolds,
+                                    &mut workspace,
+                                ) {
+                                    output.push(o);
+                                }
+                            }
+                            output
                         })
+                        .flatten()
                         .collect::<Vec<_>>()
                 })
                 .flatten()
@@ -181,13 +217,24 @@ fn do_collision_seq(
     let voxel_half = voxel_size / 2.0;
     let voxel = Cuboid::new(Vector3::new(voxel_half, voxel_half, voxel_half));
 
+    let mut manifold = Vec::new();
+    let mut workspace = None;
+
     (0..x)
         .map(|i| {
             let result = (0..y)
                 .map(|j| {
                     (0..z)
                         .filter_map(|k| {
-                            actually_do_collision((i, j, k), voxel_size, &voxel, trimesh, pos)
+                            actually_do_collision(
+                                (i, j, k),
+                                voxel_size,
+                                &voxel,
+                                trimesh,
+                                pos,
+                                &mut manifold,
+                                &mut workspace,
+                            )
                         })
                         .collect::<Vec<_>>()
                 })
