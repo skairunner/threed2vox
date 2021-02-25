@@ -7,10 +7,10 @@ fn main() {
     let config = ConfigBuilder::new()
         .set_location_level(LevelFilter::Error)
         .build();
-    TermLogger::init(LevelFilter::Debug, config, TerminalMode::Mixed);
+    TermLogger::init(LevelFilter::Debug, config, TerminalMode::Mixed).unwrap();
 
     let config = Config {
-        voxel_size: VoxelOption::MeshSize(15.0),
+        voxel_size: VoxelOption::MeshSize(20.0),
         data_version: 2566,
         input_path: "models/teapot.obj".to_string(),
         filename: "teapot".to_string(),
@@ -18,7 +18,7 @@ fn main() {
         x_rot: 0.0,
         y_rot: 0.0,
         z_rot: 0.0,
-        threads: 1,
+        threads: 4,
         nbtify: Box::new(SchematicV2),
     };
     let blob = to_schematic(config).unwrap();

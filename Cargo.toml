@@ -24,6 +24,10 @@ name = "bench_teapot"
 path = "src/bin/bench_teapot.rs"
 required-features = ["sequential"]
 
+[[bin]]
+name = "bench_teapot_par"
+path = "src/bin/bench_teapot.rs"
+
 [dependencies]
 anyhow = "1.0.32"
 clap = "2.33.0"

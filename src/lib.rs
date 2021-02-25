@@ -5,8 +5,6 @@ use voxel_grid::VoxelGrid;
 
 use nalgebra::{Translation3, Vector3};
 use parry3d::na::{Isometry3, Point3};
-use parry3d::query;
-use parry3d::query::details::contact_manifolds_trimesh_shape_shapes;
 use parry3d::query::{
     ContactManifold, ContactManifoldsWorkspace, DefaultQueryDispatcher, PersistentQueryDispatcher,
 };
@@ -107,8 +105,7 @@ pub fn to_schematic(config: Config) -> anyhow::Result<nbt::Blob> {
 
     let results = match cfg!(feature = "sequential") {
         true => do_collision_seq((x, y, z), voxel_size, &trimesh, &trimesh_transform),
-        false => vec![],
-        // false => do_collision_par((x, y, z), voxel_size, &trimesh, &trimesh_transform),
+        false => do_collision_par((x, y, z), voxel_size, &trimesh, &trimesh_transform),
     };
 
     results
@@ -152,40 +149,63 @@ fn actually_do_collision(
     }
 }
 
-// fn do_collision_par(
-//     xyz: (i32, i32, i32),
-//     voxel_size: f32,
-//     trimesh: &TriMesh,
-//     pos: &Isometry3<f32>,
-// ) -> Vec<(i32, i32, i32)> {
-//     let (x, y, z) = xyz;
-//     let voxel_half = voxel_size / 2.0;
-//     let voxel = Cuboid::new(Vector3::new(voxel_half, voxel_half, voxel_half));
-//
-//     let progress = Mutex::new(0);
-//     (0..x)
-//         .into_par_iter()
-//         .map(|i| {
-//             let result = (0..y)
-//                 .into_par_iter()
-//                 .map(|j| {
-//                     (0..z)
-//                         .into_par_iter()
-//                         .filter_map(|k| {
-//                             actually_do_collision((i, j, k), voxel_size, &voxel, trimesh, pos)
-//                         })
-//                         .collect::<Vec<_>>()
-//                 })
-//                 .flatten()
-//                 .collect::<Vec<_>>();
-//             let mut p = progress.lock().unwrap();
-//             *p += 1;
-//             log::info!("Progress {:.2}%", (*p as f32) / (x as f32) * 100.0);
-//             result
-//         })
-//         .flatten()
-//         .collect()
-// }
+fn do_collision_par(
+    xyz: (i32, i32, i32),
+    voxel_size: f32,
+    trimesh: &TriMesh,
+    pos: &Isometry3<f32>,
+) -> Vec<(i32, i32, i32)> {
+    let (x, y, z) = xyz;
+    let voxel_half = voxel_size / 2.0;
+    let voxel = Cuboid::new(Vector3::new(voxel_half, voxel_half, voxel_half));
+
+    let progress = Mutex::new(0);
+    (0..x)
+        .into_par_iter()
+        .map(|i| {
+            let result = (0..y)
+                .into_par_iter()
+                .map(|j| {
+                    let mut range = (0..z).peekable();
+                    let mut z_range = Vec::new();
+                    while range.peek().is_some() {
+                        let chunk: Vec<_> = range.by_ref().take(100).collect();
+                        z_range.push(chunk);
+                    }
+                    z_range
+                        .into_par_iter()
+                        .map(|ks| {
+                            let mut manifolds = Vec::new();
+                            let mut workspace = None;
+                            let mut output = Vec::new();
+                            for k in ks {
+                                if let Some(o) = actually_do_collision(
+                                    (i, j, k),
+                                    voxel_size,
+                                    &voxel,
+                                    trimesh,
+                                    pos,
+                                    &mut manifolds,
+                                    &mut workspace,
+                                ) {
+                                    output.push(o);
+                                }
+                            }
+                            output
+                        })
+                        .flatten()
+                        .collect::<Vec<_>>()
+                })
+                .flatten()
+                .collect::<Vec<_>>();
+            let mut p = progress.lock().unwrap();
+            *p += 1;
+            log::info!("Progress {:.2}%", (*p as f32) / (x as f32) * 100.0);
+            result
+        })
+        .flatten()
+        .collect()
+}
 
 fn do_collision_seq(
     xyz: (i32, i32, i32),
