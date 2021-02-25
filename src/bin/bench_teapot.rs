@@ -1,6 +1,7 @@
 use simplelog::{ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
 use threed2vox::config::{Config, VoxelOption};
 use threed2vox::to_schematic;
+use threed2vox::nbtifier::SchematicV2;
 
 fn main() {
     let config = ConfigBuilder::new()
@@ -18,6 +19,7 @@ fn main() {
         y_rot: 0.0,
         z_rot: 0.0,
         threads: 1,
+        nbtify: Box::new(SchematicV2),
     };
     let blob = to_schematic(config).unwrap();
     println!("{}", blob.len_bytes());
