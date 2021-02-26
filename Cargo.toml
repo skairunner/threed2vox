@@ -40,6 +40,7 @@ parry3d = "^0.1.2"
 rayon = "1.4.0"
 serde = "1.0.115"
 simplelog = "0.8.0"
+stl_io = "0.6.0"
 strsim = "0.10.0"
 tobj = { version = "2.0.3", features=["log"] }
 toml = "0.5.6"

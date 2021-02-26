@@ -1,6 +1,6 @@
 # threed2vox
 
-A Rust program to convert from 3D models (.obj) to Minecraft schematics (.schem). Takes full advantage of parallel cores to speed up generation.
+A Rust program to convert from 3D models (.obj, .stl) to Minecraft schematics (.schem). Takes full advantage of parallel cores to speed up generation.
 
 Can output WorldEdit Schematics (`.schem`) and Structure Format (`.nbt`), and any block can be output.
 
@@ -11,7 +11,13 @@ Clone the repo and run something like:
 cargo run -- --output schematics/ --size 50 --block minecraft:stone --version 1.16 -x my_input.obj
 ```
 
-Make sure that the input file is at the end.
+Make sure that the input file is at the end. The file format is detected from the file extension.
+
+### Supported file formats
+|Extensions|Format|
+|----------|------|
+|`.obj`|Waveform object file|
+|`.stl`|STL format|
 
 ## Arguments
 
