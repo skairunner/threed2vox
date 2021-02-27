@@ -18,6 +18,7 @@ Make sure that the input file is at the end. The file format is detected from th
 |----------|------|
 |`.obj`|Waveform object file|
 |`.stl`|STL format|
+|`.dae`|COLLADA exchange format|
 
 ## Arguments
 

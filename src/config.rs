@@ -1,7 +1,7 @@
 use crate::nbtifier::{NBTIfy, SchematicV2, StructureFormat};
 use crate::readers::obj::ObjReader;
 use crate::readers::reader::Reader;
-use crate::readers::StlReader;
+use crate::readers::{DaeReader, StlReader};
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
 use std::collections::HashMap;
@@ -67,6 +67,7 @@ impl Config {
         let reader: Box<dyn Reader> = match file_extension.to_lowercase().as_str() {
             "obj" => Box::new(ObjReader),
             "stl" => Box::new(StlReader),
+            "dae" => Box::new(DaeReader),
             f => panic!(
                 "The file extension {:?} is not supported. Valid files include: obj, stl",
                 f
