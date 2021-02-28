@@ -1,8 +1,8 @@
 # threed2vox
 
-A Rust program to convert from 3D models (.obj, .stl) to Minecraft schematics (.schem). Takes full advantage of parallel cores to speed up generation.
+A pure Rust program that converts from 3D models to Minecraft schematics. Takes full advantage of parallel cores to speed up generation.
 
-Can output WorldEdit Schematics (`.schem`) and Structure Format (`.nbt`), and any block can be output.
+threed2vox can accept `.obj`, `.stl`, and `.dae` files, and can output WorldEdit Schematics (`.schem`) and Structure Format (`.nbt`).
 
 ## How to Run
 Clone the repo and run something like:
