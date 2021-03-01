@@ -15,6 +15,7 @@ impl Reader for DaeReader {
             ColladaDocument::from_path(&Path::new(path)).map_err(|s| anyhow::anyhow!("{}", s))?;
         let mut triangles: Vec<[u32; 3]> = Vec::new();
         let mut vertices: Vec<Point3<f32>> = Vec::new();
+
         if let Some(objset) = doc.get_obj_set() {
             let offset = vertices.len() as u32;
             for object in objset.objects {

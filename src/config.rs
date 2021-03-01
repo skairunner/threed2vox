@@ -1,7 +1,7 @@
 use crate::nbtifier::{NBTIfy, SchematicV2, StructureFormat};
 use crate::readers::obj::ObjReader;
 use crate::readers::reader::Reader;
-use crate::readers::{DaeReader, StlReader};
+use crate::readers::{DaeReader, GltfReader, StlReader};
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
 use std::collections::HashMap;
@@ -68,6 +68,7 @@ impl Config {
             "obj" => Box::new(ObjReader),
             "stl" => Box::new(StlReader),
             "dae" => Box::new(DaeReader),
+            "gltf" | "glb" => Box::new(GltfReader),
             f => panic!(
                 "The file extension {:?} is not supported. Valid files include: obj, stl",
                 f

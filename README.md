@@ -2,7 +2,8 @@
 
 A pure Rust program that converts from 3D models to Minecraft schematics. Takes full advantage of parallel cores to speed up generation.
 
-threed2vox can accept `.obj`, `.stl`, and `.dae` files, and can output WorldEdit Schematics (`.schem`) and Structure Format (`.nbt`).
+threed2vox can accept `.obj`, `.stl`, `.dae`, `gltf`/`glb` files, and can output WorldEdit Schematics (`.schem`) and Structure Format (`.nbt`).
+Note that input formats that support non-triangles (mostly `dae`) should be re-exported to consist of triangles only. 
 
 ## How to Run
 Clone the repo and run something like:
@@ -19,6 +20,7 @@ Make sure that the input file is at the end. The file format is detected from th
 |`.obj`|Waveform object file|
 |`.stl`|STL format|
 |`.dae`|COLLADA exchange format|
+|`.gltf`, `.glb`|GL Transmission Format 2.0| 
 
 ## Arguments
 
