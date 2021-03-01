@@ -26,7 +26,7 @@ Make sure that the input file is at the end. The file format is detected from th
 
 |Long|Short|Description|
 |----|-----|-----------|
-|`--output`|`-o`|Designate the output path|
+|`--output`|`-o`|Designate the output directory path|
 |`--size`|`-s`|Designate how many blocks long the longest axis of the model is. Default is 1 model unit = 1 block.|
 |`--scale`|`-S`|Specify a units-to-blocks ratio. Defaults to 1.|
 |`--block`|`-b`|Specify what block the shell of the model will be. Defaults to stone.|

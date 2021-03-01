@@ -90,6 +90,12 @@ The largest difference between versions is pre- and post-1.13 (1241 vs 1626): th
         )
         .get_matches_from(env::args());
 
+    let path_prefix = matches
+        .value_of("output")
+        .map(|s| s.to_string())
+        .unwrap_or_default();
+    let path_prefix = Path::new(&path_prefix);
+
     let config = AppConfig::from_argmatch(matches)?;
 
     log::info!("Spawning {} threads", config.threads);
@@ -105,7 +111,8 @@ The largest difference between versions is pre- and post-1.13 (1241 vs 1626): th
 
     // Output nbt to file.
 
-    let output_path = path.join(Path::new(&format!("{}.{}", file_stem, file_ending)));
+    std::fs::create_dir_all(path_prefix);
+    let output_path = path_prefix.join(&format!("{}.{}", file_stem, file_ending));
     log::info!("Writing to '{}'", output_path.to_str().unwrap());
 
     let mut file = File::create(output_path.clone())
